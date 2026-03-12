@@ -1,4 +1,10 @@
-import { $, component$, Signal, useSignal } from "@qwik.dev/core";
+import {
+  component$,
+  createSignal,
+  Signal,
+  useSignal,
+  useVisibleTask$,
+} from "@qwik.dev/core";
 
 const MyClass = class {
   constructor(public readonly instance: number) {}
@@ -10,13 +16,17 @@ const someFactory = (instance: number, count: Signal<number>) => {
   };
 };
 
+const myClass = new MyClass(123);
+const countSig = createSignal(0);
+const incrementFn = someFactory(myClass.instance, countSig);
+
 export default component$(() => {
-  const count = useSignal(0);
-
-  const incrementFn = $(() => {
-    const myClass = new MyClass(123);
-    return someFactory(myClass.instance, count)();
+  const isClient = useSignal(false);
+  useVisibleTask$(() => {
+    isClient.value = true;
   });
-
-  return <button onClick$={incrementFn}>{count.value}</button>;
+  if (!isClient.value) {
+    return <div>Loading...</div>;
+  }
+  return <button onClick$={() => incrementFn()}>{countSig.value}</button>;
 });
