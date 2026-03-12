@@ -1,25 +1,47 @@
-import { $, component$, Signal, useSignal } from "@qwik.dev/core";
+import {
+  $,
+  component$,
+  Signal,
+  useSerializer$,
+  useSignal,
+} from "@qwik.dev/core";
 
 export default component$(() => {
   const count = useSignal(0);
 
-  class MyClass {
-    value: number;
-    constructor(v: number) {
-      this.value = v;
-    }
-  }
-
-  const someFactory = $((instance: number, count: Signal<number>) => {
-    let timesCalled = 0;
-
-    return function () {
-      timesCalled++;
-      count.value = count.value + instance + timesCalled;
-    };
+  const factoryState = useSerializer$({
+    deserialize: (
+      data: { instance: number; timesCalled: number } | undefined,
+    ) => data ?? { instance: 123, timesCalled: 0 },
+    serialize: (data) => data,
+    initial: { instance: 123, timesCalled: 0 },
   });
 
-  const increment$ = $(async () => await someFactory(123, count));
+  const someFactory = $(
+    (
+      instance: number,
+      count: Signal<number>,
+      state: typeof factoryState.value,
+    ) => {
+      return function () {
+        state.timesCalled++;
+        count.value = count.value + instance + state.timesCalled;
+      };
+    },
+  );
 
-  return <button onClick$={async () => increment$()}>{count.value}</button>;
+  return (
+    <button
+      onClick$={async () => {
+        const increment = await someFactory(
+          factoryState.value.instance,
+          count,
+          factoryState.value,
+        );
+        increment();
+      }}
+    >
+      {count.value}
+    </button>
+  );
 });
