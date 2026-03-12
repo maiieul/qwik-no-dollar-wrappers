@@ -1,32 +1,28 @@
-import {
-  component$,
-  createSignal,
-  Signal,
-  useSignal,
-  useVisibleTask$,
-} from "@qwik.dev/core";
+import { $, component$, Signal, useSignal } from "@qwik.dev/core";
 
-const MyClass = class {
-  constructor(public readonly instance: number) {}
-};
+class MyClass {
+  constructor(public readonly value: number) {}
+}
 
-const someFactory = (instance: number, count: Signal<number>) => {
+const someFactory = (classInstance: MyClass, count: Signal<number>) => {
+  let timesCalled = 0;
   return function () {
-    count.value = count.value + instance;
+    timesCalled++;
+    count.value = count.value + classInstance.value + timesCalled;
   };
 };
 
-const myClass = new MyClass(123);
-const countSig = createSignal(0);
-const incrementFn = someFactory(myClass.instance, countSig);
-
 export default component$(() => {
-  const isClient = useSignal(false);
-  useVisibleTask$(() => {
-    isClient.value = true;
+  const count = useSignal(0);
+  const incrementRef = useSignal<() => void>();
+
+  const incrementFn = $(() => {
+    if (!incrementRef.value) {
+      const myClass = new MyClass(1);
+      incrementRef.value = someFactory(myClass, count);
+    }
+    incrementRef.value?.();
   });
-  if (!isClient.value) {
-    return <div>Loading...</div>;
-  }
-  return <button onClick$={() => incrementFn()}>{countSig.value}</button>;
+
+  return <button onClick$={incrementFn}>{count.value}</button>;
 });
