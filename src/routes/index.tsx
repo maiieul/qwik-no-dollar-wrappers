@@ -1,25 +1,25 @@
-import type { DocumentHead } from "@qwik.dev/router";
-import { component$ } from "@qwik.dev/core";
+import { $, component$, Signal, useSignal } from "@qwik.dev/core";
 
 export default component$(() => {
-  return (
-    <>
-      <h1>Hi 👋</h1>
-      <div>
-        Can't wait to see what you build with qwik!
-        <br />
-        Happy coding.
-      </div>
-    </>
-  );
-});
+  const count = useSignal(0);
 
-export const head: DocumentHead = {
-  title: "Welcome to Qwik",
-  meta: [
-    {
-      name: "description",
-      content: "Qwik site description",
-    },
-  ],
-};
+  class MyClass {
+    value: number;
+    constructor(v: number) {
+      this.value = v;
+    }
+  }
+
+  const someFactory = $((instance: number, count: Signal<number>) => {
+    let timesCalled = 0;
+
+    return function () {
+      timesCalled++;
+      count.value = count.value + instance + timesCalled;
+    };
+  });
+
+  const increment$ = $(async () => await someFactory(123, count));
+
+  return <button onClick$={async () => increment$()}>{count.value}</button>;
+});
